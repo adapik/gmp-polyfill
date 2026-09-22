@@ -23,8 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Number theory: `gmp_gcd`, `gmp_gcdext`, `gmp_lcm`, `gmp_invert`, `gmp_jacobi`,
   `gmp_legendre`, `gmp_kronecker`, `gmp_nextprime`, `gmp_prob_prime`,
   `gmp_perfect_square`, `gmp_perfect_power`.
-- Random: `gmp_random_bits`, `gmp_random_range`, `gmp_random_seed` (accepted, no-op;
-  see README), sourced from `random_bytes()`.
+- Random: `gmp_random_bits`, `gmp_random_range`, sourced from `random_bytes()`.
+  `gmp_random_seed()` switches subsequent calls to a hand-written, seed-reproducible
+  SHA-256 counter-mode generator (`Adapik\Polyfill\Gmp\Random`) - reproducible within this
+  polyfill only, not bit-compatible with native GMP's Mersenne Twister, and global/sticky
+  for the rest of the process; see the README's Restrictions section before using it.
+- Unit test suite (`tests/Unit`) covering `Calculator`, `NumberParser`, and `Random`
+  directly against fixed, known-correct expectations, independent of `ext-gmp`.
 - Differential test suite comparing every function against native `ext-gmp` output across
   edge cases and randomized fuzzing.
 - GitHub Actions CI: PHP 8.1–8.5 matrix with and without `ext-gmp`, a `--prefer-lowest`
