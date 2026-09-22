@@ -838,8 +838,9 @@ if (!\function_exists('gmp_perfect_power')) {
 
 if (!\function_exists('gmp_random_bits')) {
     /**
-     * Generates a cryptographically random number with exactly $bits bits, sourced from
-     * random_bytes().
+     * Generates a random number with exactly $bits bits. Cryptographically secure
+     * (sourced from random_bytes()), unless gmp_random_seed() has been called, in which
+     * case it is deterministic from that seed instead - see gmp_random_seed().
      *
      * @param int $bits The number of bits. Must be at least 1.
      *
@@ -853,8 +854,9 @@ if (!\function_exists('gmp_random_bits')) {
 
 if (!\function_exists('gmp_random_range')) {
     /**
-     * Generates a cryptographically random number in the range [$min, $max), sourced from
-     * random_bytes().
+     * Generates a random number in the range [$min, $max). Cryptographically secure
+     * (sourced from random_bytes()), unless gmp_random_seed() has been called, in which
+     * case it is deterministic from that seed instead - see gmp_random_seed().
      *
      * @param GMP|string|int $min The inclusive lower bound.
      * @param GMP|string|int $max The exclusive upper bound. Must be greater than $min.
@@ -869,11 +871,15 @@ if (!\function_exists('gmp_random_range')) {
 
 if (!\function_exists('gmp_random_seed')) {
     /**
-     * Accepted for API compatibility, but a no-op: this polyfill sources randomness from
-     * random_bytes() (a CSPRNG), which is deliberately not reproducible from a seed. See
-     * the README for details.
+     * Makes subsequent gmp_random_bits()/gmp_random_range() calls reproducible from this
+     * seed. Uses a hand-written deterministic generator (not native GMP's Mersenne
+     * Twister, and not mt_rand()), so the exact sequence will not match native GMP's for
+     * the same seed - only this polyfill's own output is reproducible across calls. Once
+     * seeded, randomness is no longer cryptographically secure for the rest of the
+     * process (exactly like native GMP): don't call this if anything else needs
+     * gmp_random_bits()/gmp_random_range() to remain a CSPRNG. See the README.
      *
-     * @param GMP|string|int $seed Ignored.
+     * @param GMP|string|int $seed The seed.
      *
      * @throws \ValueError If $seed is a string that is not a valid integer string.
      */

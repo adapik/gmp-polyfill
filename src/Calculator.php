@@ -1211,6 +1211,10 @@ final class Calculator
             throw new \ValueError('gmp_random_bits(): Argument #1 ($bits) must be greater than or equal to 1');
         }
 
+        if (Random::isSeeded()) {
+            return BigInteger::randomBits($bits, Random::bytes(...));
+        }
+
         return BigInteger::randomBits($bits);
     }
 
@@ -1229,21 +1233,29 @@ final class Calculator
             throw new \ValueError('gmp_random_range(): Argument #1 ($min) must be less than Argument #2 ($max)');
         }
 
+        if (Random::isSeeded()) {
+            return BigInteger::randomRange($minValue, $maxValue->minus(1), Random::bytes(...));
+        }
+
         return BigInteger::randomRange($minValue, $maxValue->minus(1));
     }
 
     /**
-     * Accepted for API compatibility, but a no-op: unlike native GMP's Mersenne Twister,
-     * this polyfill sources randomness from random_bytes() (a CSPRNG), which is
-     * deliberately not reproducible from a seed. See the README for details.
+     * Makes subsequent gmp_random_bits()/gmp_random_range() calls reproducible from this
+     * seed, matching native GMP's seedable-PRNG behavior - but via a hand-written SHA-256
+     * counter-mode generator (see {@see Random}), not a reimplementation of GMP's
+     * Mersenne Twister, so the exact sequence will not match native GMP's for the same
+     * seed. Once seeded, randomness is no longer cryptographically secure for the rest of
+     * the process, exactly as with native GMP: don't call this if anything else needs
+     * gmp_random_bits()/gmp_random_range() to remain a CSPRNG.
      *
-     * @param \GMP|string|int $seed Ignored.
+     * @param \GMP|string|int $seed The seed.
      *
      * @throws \ValueError If $seed is a string that is not a valid integer string.
      */
     public static function randomSeed(\GMP|string|int $seed): void
     {
-        self::toBigInteger($seed, 'gmp_random_seed');
+        Random::seed(self::toBigInteger($seed, 'gmp_random_seed'));
     }
 
     // --- Helpers ---------------------------------------------------------------------------

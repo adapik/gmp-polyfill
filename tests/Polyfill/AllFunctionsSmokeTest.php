@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Adapik\Polyfill\Gmp\Tests\Polyfill;
 
+use Adapik\Polyfill\Gmp\Random;
+
 /**
  * Exercises every gmp_*() shim registered by bootstrap.php through the actual global
  * function (not the internal Calculator), so the thin wrapper bodies themselves - not just
@@ -12,6 +14,12 @@ namespace Adapik\Polyfill\Gmp\Tests\Polyfill;
  */
 final class AllFunctionsSmokeTest extends PolyfillTestCase
 {
+    protected function tearDown(): void
+    {
+        Random::resetForTesting();
+        parent::tearDown();
+    }
+
     public function testConstructionAndConversion(): void
     {
         $a = \gmp_init('123456789012345678901234567890');
@@ -126,9 +134,49 @@ final class AllFunctionsSmokeTest extends PolyfillTestCase
         self::assertLessThan(10, \gmp_intval($range));
     }
 
-    public function testRandomSeedIsANoOpThatDoesNotThrow(): void
+    public function testRandomSeedMakesRandomBitsReproducible(): void
     {
-        $this->expectNotToPerformAssertions();
         \gmp_random_seed(42);
+        $first = \gmp_strval(\gmp_random_bits(256));
+
+        \gmp_random_seed(42);
+        $second = \gmp_strval(\gmp_random_bits(256));
+
+        self::assertSame($first, $second);
+    }
+
+    public function testRandomSeedMakesRandomRangeReproducible(): void
+    {
+        \gmp_random_seed(7);
+        $first = \gmp_strval(\gmp_random_range(\gmp_init(0), \gmp_init('123456789012345678901234567890')));
+
+        \gmp_random_seed(7);
+        $second = \gmp_strval(\gmp_random_range(\gmp_init(0), \gmp_init('123456789012345678901234567890')));
+
+        self::assertSame($first, $second);
+    }
+
+    public function testDifferentSeedsProduceDifferentSequences(): void
+    {
+        \gmp_random_seed(1);
+        $first = \gmp_strval(\gmp_random_bits(256));
+
+        \gmp_random_seed(2);
+        $second = \gmp_strval(\gmp_random_bits(256));
+
+        self::assertNotSame($first, $second);
+    }
+
+    public function testUnseededRandomBitsIsUnaffectedByPriorSeeding(): void
+    {
+        \gmp_random_seed(42);
+        \gmp_random_bits(8);
+        Random::resetForTesting();
+
+        // After resetting, gmp_random_bits() must not silently stay deterministic.
+        $a = \gmp_strval(\gmp_random_bits(256));
+        $b = \gmp_strval(\gmp_random_bits(256));
+
+        self::assertNotSame($a, $b);
     }
 }
